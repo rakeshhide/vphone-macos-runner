@@ -12,7 +12,7 @@ jobs:
 
       - name: Prepare Toolchain
         run: |
-          brew install cmake ninja pkg-config openssl zstd libzip
+          brew install cmake ninja pkg-config openssl zstd libzip keystone
           python3 -m pip install --upgrade pip --break-system-packages || true
 
       - name: Start Interactive SSH Session

@@ -17,7 +17,7 @@ jobs:
 
       - name: Install dependencies and tools
         run: |
-          brew install cmake ninja pkg-config openssl zstd libzip
+          brew install cmake ninja pkg-config openssl zstd libzip keystone
           python3 -m pip install --upgrade pip --break-system-packages || true
 
       - name: Clone vphone-cli
