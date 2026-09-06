@@ -1,0 +1,39 @@
+﻿name: Build vphone-cli on macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: 'Command to run'
+        required: false
+        default: 'build'
+
+jobs:
+  build-and-run:
+    runs-on: macos-15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies and tools
+        run: |
+          brew install cmake ninja pkg-config openssl zstd libzip
+          python3 -m pip install --upgrade pip
+
+      - name: Clone vphone-cli
+        run: |
+          git clone --recurse-submodules https://github.com/Lakr233/vphone-cli.git
+          cd vphone-cli
+          ./scripts/setup_tools.sh
+          ./scripts/build.sh
+
+      - name: Run CLI Test
+        run: |
+          ./vphone-cli/.build/vphone-cli.app/Contents/MacOS/vphone-cli --help
+          ./vphone-cli/.build/vphone-cli.app/Contents/MacOS/vphone-cli vm list
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vphone-cli-macos15
+          path: vphone-cli/.build/

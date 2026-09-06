@@ -1,0 +1,19 @@
+﻿name: Free macOS Interactive Terminal
+
+on:
+  workflow_dispatch:
+
+jobs:
+  interactive-macos:
+    runs-on: macos-15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Prepare Toolchain
+        run: |
+          brew install cmake ninja pkg-config openssl zstd libzip
+          python3 -m pip install --upgrade pip
+
+      - name: Start Interactive SSH Session
+        uses: mxschmitt/action-tmate@v3
