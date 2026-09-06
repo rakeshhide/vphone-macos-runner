@@ -1,0 +1,177 @@
+﻿================================================================================
+           VPHONE-CLI SETUP AND EXECUTION GUIDE FOR WINDOWS USERS
+================================================================================
+
+1. OVERVIEW
+--------------------------------------------------------------------------------
+Lakr233/vphone-cli requires an Apple Silicon processor (ARM64) and macOS 15+ 
+kernel virtualization extensions. It cannot run directly on Windows or x86 CPUs.
+
+This guide allows any Windows user to build, run, and interact with vphone-cli 
+for free using GitHub Actions Apple Silicon (macOS 15) cloud runners directly 
+from Windows PowerShell.
+
+
+2. PREREQUISITES
+--------------------------------------------------------------------------------
+Install the following on Windows:
+- Git for Windows: https://git-scm.com/download/win
+- GitHub CLI (gh): winget install --id GitHub.cli
+- A free personal GitHub account
+
+
+3. INITIAL SETUP (ONE TIME)
+--------------------------------------------------------------------------------
+Step 3.1: Open PowerShell on Windows and authenticate GitHub CLI:
+   gh auth login
+
+   Select the following options:
+   - What account: GitHub.com
+   - Preferred protocol: HTTPS
+   - Authenticate Git with your credentials: Y
+   - How would you like to authenticate: Login with a web browser
+   - Enter the 8-character one-time code in your browser and authorize.
+
+Step 3.2: Create a local folder for the runner:
+   mkdir C:\vphone-macos-runner
+   cd C:\vphone-macos-runner
+   git init
+
+Step 3.3: Create GitHub Actions workflows directory:
+   mkdir .github\workflows
+
+
+4. WORKFLOW CONFIGURATION
+--------------------------------------------------------------------------------
+File 1: .github\workflows\build-and-run.yml
+------------------------------------------
+name: Build vphone-cli on macOS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-run:
+    runs-on: macos-15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16 for Swift 6
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16*.app/Contents/Developer || true
+          swift --version
+
+      - name: Install dependencies and tools
+        run: |
+          brew install cmake ninja pkg-config openssl zstd libzip keystone
+          python3 -m pip install --upgrade pip --break-system-packages || true
+          python3 -m pip install --break-system-packages amfidont || true
+
+      - name: Clone vphone-cli
+        run: |
+          git clone --recurse-submodules https://github.com/Lakr233/vphone-cli.git
+          cd vphone-cli
+          ./scripts/setup_tools.sh
+          ./scripts/build.sh
+
+      - name: Start amfidont daemon
+        run: |
+          sudo $(which amfidont || echo /opt/homebrew/bin/amfidont) daemon --spoof-apple --allow-all &
+          sleep 2 || true
+
+      - name: Run CLI Test
+        run: |
+          cd vphone-cli
+          ./.build/vphone-cli.app/Contents/MacOS/vphone-cli --help || true
+          ./.build/release/vphone-cli --help || true
+
+      - name: Upload Build Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vphone-cli-macos15
+          path: |
+            vphone-cli/.build/vphone-cli.app
+            vphone-cli/.build/release/vphone-cli
+
+
+File 2: .github\workflows\terminal.yml
+--------------------------------------
+name: Free macOS Interactive Terminal
+
+on:
+  workflow_dispatch:
+
+jobs:
+  interactive-macos:
+    runs-on: macos-15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16 for Swift 6
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16*.app/Contents/Developer || true
+          swift --version
+
+      - name: Prepare Toolchain
+        run: |
+          brew install cmake ninja pkg-config openssl zstd libzip keystone
+          python3 -m pip install --upgrade pip --break-system-packages || true
+
+      - name: Start Interactive SSH Session
+        uses: mxschmitt/action-tmate@v3
+
+
+5. DEPLOY REPOSITORY TO GITHUB
+--------------------------------------------------------------------------------
+From C:\vphone-macos-runner in PowerShell, run:
+
+   git branch -m main
+   git add .
+   git commit -m "Initialize macOS runner"
+   gh repo create vphone-macos-runner --public --source=. --remote=origin --push
+
+
+6. HOW TO TRIGGER COMPILATION AND DOWNLOAD ARTIFACTS
+--------------------------------------------------------------------------------
+Step 6.1: Trigger build from Windows PowerShell:
+   gh workflow run build-and-run.yml
+
+Step 6.2: Monitor live output in PowerShell:
+   gh run watch
+
+Step 6.3: When complete, open the repository URL on GitHub under the Actions tab.
+Download the "vphone-cli-macos15" zip archive from Artifacts.
+
+
+7. HOW TO GET A LIVE INTERACTIVE MACOS TERMINAL
+--------------------------------------------------------------------------------
+Step 7.1: Start the interactive session:
+   gh workflow run terminal.yml
+
+Step 7.2: Watch the logs:
+   gh run watch
+
+Step 7.3: In the step "Start Interactive SSH Session", look for the line:
+   SSH: ssh <generated_id>@<region>.tmate.io
+
+Step 7.4: Copy and paste that ssh command directly into Windows PowerShell.
+You now have a live, real-time root shell on a physical Apple Silicon Mac 
+running macOS 15.
+
+
+8. TROUBLESHOOTING
+--------------------------------------------------------------------------------
+- Issue: "Account is locked due to a billing issue"
+  Fix: The repository must be public. Free accounts get unlimited runner 
+  access on public repositories without payment cards.
+
+- Issue: "Process killed: 9 (SIGKILL)"
+  Fix: Private virtualization entitlements trigger AMFI on macOS. 
+  Run "sudo amfidont daemon --spoof-apple --allow-all &" before executing.
+
+- Issue: "Swift tools version 6.0.0 required"
+  Fix: Ensure Xcode 16 is selected:
+  "sudo xcode-select -s /Applications/Xcode_16*.app/Contents/Developer"
