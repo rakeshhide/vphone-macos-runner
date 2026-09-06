@@ -13,7 +13,7 @@ jobs:
       - name: Prepare Toolchain
         run: |
           brew install cmake ninja pkg-config openssl zstd libzip
-          python3 -m pip install --upgrade pip
+          python3 -m pip install --upgrade pip --break-system-packages || true
 
       - name: Start Interactive SSH Session
         uses: mxschmitt/action-tmate@v3
