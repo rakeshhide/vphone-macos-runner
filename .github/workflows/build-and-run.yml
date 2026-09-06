@@ -10,7 +10,7 @@ on:
 
 jobs:
   build-and-run:
-    runs-on: macos-15
+    runs-on: macos-14
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -35,5 +35,5 @@ jobs:
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: vphone-cli-macos15
+          name: vphone-cli-macos14
           path: vphone-cli/.build/
