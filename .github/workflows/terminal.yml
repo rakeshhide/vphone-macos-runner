@@ -5,10 +5,15 @@ on:
 
 jobs:
   interactive-macos:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Select Xcode 16 for Swift 6
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16*.app/Contents/Developer || true
+          swift --version
 
       - name: Prepare Toolchain
         run: |
