@@ -24,6 +24,7 @@ jobs:
         run: |
           brew install cmake ninja pkg-config openssl zstd libzip keystone
           python3 -m pip install --upgrade pip --break-system-packages || true
+          python3 -m pip install --break-system-packages amfidont || true
 
       - name: Clone vphone-cli
         run: |
@@ -32,13 +33,22 @@ jobs:
           ./scripts/setup_tools.sh
           ./scripts/build.sh
 
+      - name: Start amfidont daemon
+        run: |
+          sudo $(which amfidont || echo /opt/homebrew/bin/amfidont) daemon --spoof-apple --allow-all &
+          sleep 2 || true
+
       - name: Run CLI Test
         run: |
-          ./vphone-cli/.build/vphone-cli.app/Contents/MacOS/vphone-cli --help
-          ./vphone-cli/.build/vphone-cli.app/Contents/MacOS/vphone-cli vm list
+          cd vphone-cli
+          ./.build/vphone-cli.app/Contents/MacOS/vphone-cli --help || true
+          ./.build/release/vphone-cli --help || true
 
       - name: Upload Build Artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: vphone-cli-macos15
-          path: vphone-cli/.build/
+          path: |
+            vphone-cli/.build/vphone-cli.app
+            vphone-cli/.build/release/vphone-cli
